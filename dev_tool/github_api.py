@@ -2,7 +2,7 @@ import requests
 import base64
 from os import linesep
 from collections import namedtuple
-from . import realpath_join, path_exists, HERE, PYPROJECT_TOML
+from . import realpath_join, path_exists, mkdir, HERE, PYPROJECT_TOML
 from .toml_op import read_toml, write_toml
 
 _api_root = "https://api.github.com"
@@ -93,36 +93,66 @@ def _update_from_gist(meta, ref=None):
         return True
 
 
-def _update_from_repo_contents(meta, ref=None):
-    file_path = realpath_join(HERE, meta["file"], normcase=False)
+def _update_from_repo_contents(meta, namespace):
+    parent_path = namespace.parent_dir if 'parent_dir' in namespace else HERE
+    file_path = realpath_join(parent_path, meta["file"], normcase=False)
     file_exists = path_exists(file_path)
+
+    # for repo contents type is "dir"
+    file_filter = namespace.file_filter if 'file_filter' in namespace else lambda x: True
+
     args = Repo_Contents(*[meta.get(k, None) for k in Repo_Contents._fields])
     url = repo_contents(*args)
+
+    ref = namespace.ref
+    if ref is None:
+        repo_info = api_response(repo_get(args.owner, args.repo))
+        meta["ref"] = repo_info["default_branch"]
+    else:
+        meta["ref"] = ref # update meta reference
+    
     params_ = {} if ref is None else {"ref": ref}
     resp_json = api_response(url, params=params_)
     rct = repo_contents_type(resp_json)
 
-    def _internal_handle():
-        print("download %s" % resp_json["download_url"])
-        make_script_from_base64(file_path, resp_json["content"])
-        if ref is None:
-            repo_info = api_response(repo_get(args.owner, args.repo))
-            meta["ref"] = repo_info["default_branch"]
+    def _internal_handle(local_file_path, file_info, from_base64=True):
+        download_url = file_info["download_url"]
+        if from_base64:
+            make_script_from_base64(local_file_path, file_info["content"])
         else:
-            meta["ref"] = ref
-        meta["sha"] = resp_json["sha"]  # update meta reference
+            # download from url
+            r = requests.get(download_url, allow_redirects=True)
+            with open(local_file_path, 'w', newline=linesep) as f:
+                    content = r.content.decode(r.encoding)
+                    f.write(content)
+        print("downloaded %s" % download_url)
 
     if not file_exists:
         if rct == "file":
-            _internal_handle()
+            _internal_handle(file_path, resp_json)
+            meta["sha"] = resp_json["sha"]  # update meta reference
+            return True
+        elif rct == "dir":
+            mkdir(file_path)
+            for file_info in resp_json:
+                if file_filter(file_info):
+                    local_file_path = realpath_join(parent_path, file_info["path"])
+                    _internal_handle(local_file_path, file_info, from_base64=False)
             return True
         else:
             return False
     else:
         if rct == "file":
             if meta["sha"] != resp_json["sha"]:
-                _internal_handle()
+                _internal_handle(file_path, resp_json)
+                meta["sha"] = resp_json["sha"]  # update meta reference
                 return True
+        elif rct == "dir":
+            for file_info in resp_json:
+                if file_filter(file_info):
+                    local_file_path = realpath_join(parent_path, file_info["path"])
+                    _internal_handle(local_file_path, file_info, from_base64=False)
+            return True
         else:
             return False
 
@@ -135,7 +165,7 @@ def update_from_github(namespace, meta):
     if namespace.source == git_source_choices[0]:
         return _update_from_gist(meta, namespace.ref)
     elif namespace.source == git_source_choices[1]:
-        return _update_from_repo_contents(meta, namespace.ref)
+        return _update_from_repo_contents(meta, namespace)
     else:
         return
 

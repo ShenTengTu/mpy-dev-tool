@@ -110,5 +110,7 @@ def os_walk_hash(dir_path):
 # config #
 HERE = dirname(__file__)
 DIST_DIR = realpath_join(HERE, "../dist")
-SUBMODULES_DIR = realpath_join(HERE, "../submodules")
+SUBMODULES_DIR = realpath_join(HERE, "../submodules") # sub modules insides of main module
+EXT_LIB_DIR = realpath_join(HERE, "../ext_lib") # for micropython-lib
+LIB_DIR = realpath_join(HERE, "../lib") # for 3rd party Lib
 PYPROJECT_TOML = realpath_join(HERE, "../pyproject.toml")

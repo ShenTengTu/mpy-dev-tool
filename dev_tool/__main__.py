@@ -1,5 +1,6 @@
-import argparse
+from argparse import _SubParsersAction, Namespace
 import shutil
+from os import linesep
 from . import (
     realpath_join,
     os_walk_cp,
@@ -9,6 +10,8 @@ from . import (
     HERE,
     DIST_DIR,
     SUBMODULES_DIR,
+    EXT_LIB_DIR,
+    LIB_DIR,
     PYPROJECT_TOML,
 )
 from .toml_op import write_toml, read_toml
@@ -23,10 +26,14 @@ def init_dev_tool_toml():
     d = read_toml(PYPROJECT_TOML)
     if "dev_tool" not in d:
         d.setdefault("dev_tool", {})
+
         d["dev_tool"].setdefault("module", {})
         d["dev_tool"]["module"].setdefault("name", "module_name")
         d["dev_tool"]["module"].setdefault("src_dir", ".")
+        d["dev_tool"]["module"].setdefault("micropython-lib", [])
+
         d["dev_tool"].setdefault("submodule_dependencies", {})
+
         d["dev_tool"].setdefault("script_src", {})
         d["dev_tool"]["script_src"].setdefault(
             "gists", [{"file": "", "gist_id": "", "sha": ""}]
@@ -35,9 +42,10 @@ def init_dev_tool_toml():
             "repo_contents",
             [{"file": "", "owner": "", "repo": "", "path": "", "ref": "", "sha": ""}],
         )
+
         write_toml(PYPROJECT_TOML, d)
 
-class PyBoardActioin(argparse._SubParsersAction):
+class PyBoardActioin(_SubParsersAction):
     """
     Create `PyboardContextbuilder` instance & add into the namespace.
     """
@@ -82,7 +90,7 @@ parser = CLI(
     ),
 )
 
-# PyBoard arguments
+# PyBoard arguments #
 pyboard_args_g = parser.add_argument_group("PyBoard arguments")
 pyboard_args_g.add_argument(
     "-p",
@@ -110,6 +118,46 @@ pyboard_args_g.add_argument(
     "-dl", "--delay", default=3, type=int, help="seconds to wait before entering raw REPL"
 )
 
+# Task commands #
+@parser.sub_command(
+    aliases=["dl_ext"], help="download extra libraries to local from `micropython-lib`"
+)
+def download_ext_libs(args):
+
+    def file_filter(file_info):
+        file_name = str(file_info["name"])
+        return (
+            file_name.endswith(".py") 
+            and not file_name.startswith(("test_", "example_"))
+            and file_name not in ["setup.py"]
+        )
+
+    d = read_toml(PYPROJECT_TOML)
+    if "micropython-lib" in  d["dev_tool"]["module"]:
+        ext_lib_list = d["dev_tool"]["module"]["micropython-lib"]
+        ns = Namespace(
+            source='repo_contents',
+            ref='master',
+            parent_dir=EXT_LIB_DIR,
+            file_filter=file_filter
+            )
+        meta = {
+            'owner': 'micropython',
+            'repo': 'micropython-lib',
+            'file': None,
+            'path': None,
+            'sha': None
+        }
+    for lib_name in ext_lib_list:
+        print(lib_name, ":")
+        meta['file'] = lib_name
+        meta['path'] = lib_name
+        update_from_github(ns, meta)
+        # create __init__.py
+        init_py_path =  realpath_join(EXT_LIB_DIR, lib_name, "__init__.py", normcase=False)
+        if not path_exists(init_py_path):
+            with open(init_py_path, 'w', newline=linesep) as f:
+                f.write("")
 
 @parser.sub_command_arg(
     "submodule",

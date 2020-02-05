@@ -6,6 +6,9 @@ Dev tool
 
 Task Commands
 -------------
+`download_ext_libs`
+    download extra libraries to local from `micropython-lib`.
+
 `add_submodule <submodule>`
     add a submodule into main module .
 

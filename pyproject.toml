@@ -1,6 +1,7 @@
 [dev_tool.module]
 name = "dev_tool" # Change to your module name
 src_dir = "." # Where is the parent folder of the module (relative to project root)
+micropython-lib = []
 
 [dev_tool.submodule_dependencies]
 
