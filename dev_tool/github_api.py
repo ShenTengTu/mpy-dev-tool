@@ -169,8 +169,8 @@ def update_from_github(namespace, meta):
     else:
         return
 
-def update_script_from_github(namespace):
-    d = read_toml(PYPROJECT_TOML)
+def update_script_from_github(namespace, config_toml=PYPROJECT_TOML):
+    d = read_toml(config_toml)
     meta = None
     index = -1
     meta_list = d["dev_tool"]["script_src"][namespace.source]
@@ -187,4 +187,4 @@ def update_script_from_github(namespace):
     if not success:
         return
 
-    write_toml(PYPROJECT_TOML, d)
+    write_toml(config_toml, d)

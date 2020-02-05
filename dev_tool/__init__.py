@@ -2,6 +2,9 @@ import os
 import hashlib
 
 # path util #
+def os_cwd():
+    return os.getcwd()
+
 def replace_os_sep(path, new_sep="/"):
     return path.replace(os.sep, new_sep)
 

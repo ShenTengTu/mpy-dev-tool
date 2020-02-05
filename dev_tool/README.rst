@@ -43,9 +43,11 @@ If the script file has been exist:
 - From gist: Auto upate to the lastest revision.
 - From repo content: Use `--ref` argument to to specify the reference.
 
+You can use `--toml` to specify config toml file (the path base on CWD).
+
 .. code-block::
 
-    python -m dev_tool update_script --dev repo_contents pyboard.py -ref v1.12
+    python -m dev_tool update_script --dev repo_contents pyboard.py -ref v1.12 --toml ./dev_tool/script_src.toml
 
 
 About Interaction with PyBoard

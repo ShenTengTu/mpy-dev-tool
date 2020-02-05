@@ -3,6 +3,7 @@ import shutil
 from os import linesep
 from . import (
     realpath_join,
+    os_cwd,
     os_walk_cp,
     os_walk_hash,
     path_exists,
@@ -16,7 +17,7 @@ from . import (
 )
 from .toml_op import write_toml, read_toml
 from .mpy import mpy_cross_version, mk_mpy, os_walk_mpy
-from .github_api import git_source_choices, update_from_github
+from .github_api import git_source_choices, update_from_github, update_script_from_github
 from .pyb_util import PyboardContextbuilder
 from .cli import CLI
 
@@ -237,34 +238,17 @@ def make_mpy(args):
 @parser.sub_command_arg("file", help="script file basename.", type=str)
 @parser.sub_command_arg("source", help="the script source", choices=git_source_choices)
 @parser.sub_command_arg("-r", "--ref", help="The name of the commit/branch/tag", type=str)
-@parser.sub_command_arg("-d", "--dev", help="for dev_tool", action="store_true")
+@parser.sub_command_arg("-d", "--dev", help="for development", action="store_true")
+@parser.sub_command_arg("-t", "--toml", help="specify config toml file (the path base on CWD)", type=str)
 @parser.sub_command(
     aliases=["u_scpt"], help="update the script file by github API (see pyproject.toml)."
 )
 def update_script(args):
-    if args.dev:
-        d = read_toml(PYPROJECT_TOML)
-        meta = None
-        index = -1
-        meta_list = d["dev_tool"]["script_src"][args.source]
-        for meta_ in meta_list:
-            index += 1
-            if meta_.get("file", "") == args.file:
-                meta = meta_
-                break
-        if meta is None:
-            print("%s is not in pyproject.toml" % args.file)
-            return
-
-        success = update_from_github(args, meta)  # update meta reference if success
-        if not success:
-            return
-
-        write_toml(PYPROJECT_TOML, d)
-
+    if args.toml:
+        config_toml = realpath_join(os_cwd(), args.toml)
+        update_script_from_github(args, config_toml)
     else:
-        print("only support `update_script --dev file`")
-
+        update_script_from_github(args)
 
 @parser.sub_command_arg("src", help="the dir path on the board", nargs="?", default="/")
 @parser.sub_command(aliases=["pyb_ls"], help="pyboard: list the dir")

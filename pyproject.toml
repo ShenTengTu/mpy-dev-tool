@@ -7,15 +7,15 @@ micropython-lib = []
 
 [dev_tool.script_src]
 [[dev_tool.script_src.gists]]
-file = "cli.py"
-gist_id = "5e40217db8f7a218b28f365a13a14c00"
-sha = "996ff9d9d252b1f5d344114635419044da590e85"
+file = ""
+gist_id = ""
+sha = ""
 
 [[dev_tool.script_src.repo_contents]]
-file = "pyboard.py"
-owner = "micropython"
-repo = "micropython"
-path = "tools/pyboard.py"
-ref = "master"
-sha = "a0b4ac32005ccbd2fd63b27a15b98b7e2b2074a5"
+file = ""
+owner = ""
+repo = ""
+path = ""
+ref = ""
+sha = ""
 
