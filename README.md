@@ -22,6 +22,7 @@ Just execute `get_dev_tool.py` in your project, it would download `dev_tool` & `
 ## Directory Structure
 ```
 ─ your_project
+  └─ assets
   └─ dev_tool
   └─ dist
       └─ mpy 
@@ -30,7 +31,7 @@ Just execute `get_dev_tool.py` in your project, it would download `dev_tool` & `
   └─ submodules
   └─ pyproject.toml
 ```
-
+- **assets** : Place the files (like `*.json`, `*.jpg` etc.) used by main module to here.
 - **dev_tool** : `dev_tool` CLI module.
 - **dist** : Your project distribution is here.
   - **mpy** : All compiled `.py` file is here.

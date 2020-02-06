@@ -28,11 +28,17 @@ def realpath_join(root, *paths, normcase=True):
 def relpath(path, start=None):
     return replace_os_sep(os.path.relpath(path, start) if start else os.path.relpath(path))
 
+
+def path_isdir(path):
+    return os.path.isdir(path)
+
+
 def lsdir(path):
     return os.listdir(path)
 
+
 def mkdir(path):
-    if not os.path.isdir(path):
+    if not path_isdir(path):
         os.makedirs(path)
 
 
@@ -73,6 +79,15 @@ def os_walk_cp(src_dir, dest_dir, copy_fn=print):
     tree = os_walk(src_dir)
     for root, _, files in tree:
         root_ = replace_os_sep(root)
+       
+        # for dir
+        rel_root = relpath(root_, start=src_dir)
+        if rel_root != ".":
+            if path_exists(root_):
+                if callable(copy_fn):
+                    copy_fn(root_, dest_dir_ + "/" + rel_root, True)  # src, dest, isdir
+        
+        # for file
         for f_nanme in files:
             src = realpath_join(root_, f_nanme)
             rel_src = relpath(src, start=src_dir)
@@ -80,12 +95,6 @@ def os_walk_cp(src_dir, dest_dir, copy_fn=print):
             if callable(copy_fn):
                 if path_exists(src):
                     copy_fn(src, dest, False)  # src, dest, isdir
-
-        if callable(copy_fn):
-            rel_root = relpath(root_, start=src_dir)
-            if rel_root != ".":
-                if path_exists(root_):
-                    copy_fn(root_, dest_dir_ + "/" + rel_root, True)  # src, dest, isdir
 
 
 def fname_cp_dest(src, dest):

@@ -18,7 +18,7 @@ from . import (
 from .toml_op import write_toml, read_toml
 from .mpy import mpy_cross_version, mk_mpy, os_walk_mpy
 from .github_api import git_source_choices, update_from_github, update_script_from_github
-from .pyb_util import PyboardContextbuilder
+from .pyb_util import PyboardContextbuilder, pyboard_put_files
 from .cli import CLI
 
 
@@ -92,32 +92,40 @@ parser = CLI(
 )
 
 # PyBoard arguments #
-pyboard_args_g = parser.add_argument_group("PyBoard arguments")
-pyboard_args_g.add_argument(
-    "-p",
-    "--port",
-    default="/dev/ttyACM0",
-    help="the serial device or the IP address of the pyboard",
-)
-pyboard_args_g.add_argument(
-    "-b", "--baud", default=115200, help="the baud rate of the serial device"
-)
-pyboard_args_g.add_argument(
-    "-u", "--user", default="micro", help="the telnet login username"
-)
-pyboard_args_g.add_argument(
-    "-pw", "--password", default="python", help="the telnet login password"
-)
-pyboard_args_g.add_argument(
-    "-w",
-    "--wait",
-    default=0,
-    type=int,
-    help="seconds to wait for USB connected board to become available",
-)
-pyboard_args_g.add_argument(
-    "-dl", "--delay", default=3, type=int, help="seconds to wait before entering raw REPL"
-)
+def mk_pyboard_argument_group(parser_):
+    '''
+    Add argument group about PyBoard to argparse parser.
+    '''
+    pyb_args_g = parser_.add_argument_group("PyBoard arguments")
+    pyb_args_g.add_argument(
+        "-p",
+        "--port",
+        default="/dev/ttyACM0",
+        help="the serial device or the IP address of the pyboard",
+    )
+    pyb_args_g.add_argument(
+        "-b", "--baud", default=115200, help="the baud rate of the serial device"
+    )
+    pyb_args_g.add_argument(
+        "-u", "--user", default="micro", help="the telnet login username"
+    )
+    pyb_args_g.add_argument(
+        "-pw", "--password", default="python", help="the telnet login password"
+    )
+    pyb_args_g.add_argument(
+        "-w",
+        "--wait",
+        default=0,
+        type=int,
+        help="seconds to wait for USB connected board to become available",
+    )
+    pyb_args_g.add_argument(
+        "-dl", "--delay", default=3, type=int, help="seconds to wait before entering raw REPL"
+    )
+
+    return pyb_args_g
+
+pyboard_args_g = mk_pyboard_argument_group(parser)
 
 # Task commands #
 @parser.sub_command(
@@ -262,18 +270,9 @@ def pyboard_ls(args):
 )
 def pyboard_install(args):
     with args._pyb_context_builder_(args.delay) as pyb_context:
-
-        def copy_fn(src, dest, isdir):
-            if isdir:
-                pyb_context.mk_dir(dest, verbose=False)
-            else:
-                print("%s >> %s" % (src, dest))
-                pyb_context.pyb.fs_put(src, dest)
-
-        dest_dir = "lib/" + MODULE_NAME
-        pyb_context.mk_dirs(dest_dir)
         src_dir = realpath_join(DIST_DIR, "mpy/" + MODULE_NAME)
-        os_walk_cp(src_dir, dest_dir, copy_fn)
+        dest_dir = "lib/" + MODULE_NAME
+        pyboard_put_files(pyb_context, [(src_dir, dest_dir)])
 
 
 def main():

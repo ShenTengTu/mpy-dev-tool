@@ -1,7 +1,7 @@
 from .pyboard import Pyboard, PyboardError
 import time
 from re import search
-from . import os_strerror, path_split
+from . import os_strerror, path_split, path_isdir, os_walk_cp
 
 
 def pyb_parse_errno(err):
@@ -89,3 +89,27 @@ class PyboardContextbuilder:
         Return a context manager
         """
         return _PyboardContext(self.__pyb, delay)
+
+
+def pyboard_put_files(pyb_context: _PyboardContext, src_dest_list: list):
+    '''
+    .. code-block:: python
+
+        src_dest_list = [
+            (src_path, dest_path),
+        ]
+
+    '''
+    def copy_fn(src, dest, isdir):
+        if isdir:
+            pyb_context.mk_dir(dest, verbose=False)
+        else:
+            print("%s >> %s" % (src, dest))
+            pyb_context.pyb.fs_put(src, dest)
+    
+    for src, dest in src_dest_list:
+        if path_isdir(src):
+            pyb_context.mk_dirs(dest)
+            os_walk_cp(src, dest, copy_fn)
+        else:
+            copy_fn(src, dest, False)
