@@ -5,9 +5,11 @@ from . import realpath_join, mkdir, os_walk
 
 def mpy_cross_process(*args):
     with mpy_cross.run(*args, stdout=PIPE) as proc:
-        line = proc.stdout.readline().decode("utf-8")
-        if line:
-            print(line)
+        while True:
+            line = proc.stdout.readline().decode("utf-8")
+            if not line:
+                break
+            print(line.rstrip())
 
 
 def mpy_cross_version():

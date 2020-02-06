@@ -1,4 +1,5 @@
 import os
+import shutil
 import hashlib
 
 # path util #
@@ -27,6 +28,8 @@ def realpath_join(root, *paths, normcase=True):
 def relpath(path, start=None):
     return replace_os_sep(os.path.relpath(path, start) if start else os.path.relpath(path))
 
+def lsdir(path):
+    return os.listdir(path)
 
 def mkdir(path):
     if not os.path.isdir(path):
@@ -52,6 +55,15 @@ def path_split(path):
 def os_strerror(code):
     return os.strerror(code)
 
+def cp_file(src, dst):
+    shutil.copyfile(src, dst)
+
+def cp_dir(src, dst):
+    try:
+        shutil.copytree(src, dst)
+    except FileExistsError:
+        shutil.rmtree(dst)
+        shutil.copytree(src, dst)
 
 def os_walk_cp(src_dir, dest_dir, copy_fn=print):
     """
@@ -116,4 +128,5 @@ DIST_DIR = realpath_join(HERE, "../dist")
 SUBMODULES_DIR = realpath_join(HERE, "../submodules") # sub modules insides of main module
 EXT_LIB_DIR = realpath_join(HERE, "../ext_lib") # for micropython-lib
 LIB_DIR = realpath_join(HERE, "../lib") # for 3rd party Lib
+ASSETS_DIR = realpath_join(HERE, "../assets")
 PYPROJECT_TOML = realpath_join(HERE, "../pyproject.toml")

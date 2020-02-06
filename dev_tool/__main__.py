@@ -230,8 +230,8 @@ def make_mpy(args):
     args_list = os_walk_mpy(SRC_DIR, realpath_join(DIST_DIR, "mpy/" + MODULE_NAME))
     mpy_cross_version()
     while args_list:
-        args = args_list.pop()
-        mk_mpy(*args)
+        args_ = args_list.pop()
+        mk_mpy(*args_)
     print("finished.")
 
 
