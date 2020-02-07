@@ -1,7 +1,9 @@
-import argparse
+from argparse import _SubParsersAction, Namespace
 import shutil
+from os import linesep
 from . import (
     realpath_join,
+    os_cwd,
     os_walk_cp,
     os_walk_hash,
     path_exists,
@@ -9,35 +11,58 @@ from . import (
     HERE,
     DIST_DIR,
     SUBMODULES_DIR,
+    EXT_LIB_DIR,
+    LIB_DIR,
     PYPROJECT_TOML,
 )
 from .toml_op import write_toml, read_toml
 from .mpy import mpy_cross_version, mk_mpy, os_walk_mpy
-from .github_api import git_source_choices, update_from_github
-from .pyb_util import PyboardContextbuilder
+from .github_api import git_source_choices, update_from_github, update_script_from_github
+from .pyb_util import PyboardContextbuilder, pyboard_put_files
 from .cli import CLI
 
 
 
 def init_dev_tool_toml():
+    if not path_exists(PYPROJECT_TOML):
+        write_toml(PYPROJECT_TOML, {})
+    
     d = read_toml(PYPROJECT_TOML)
-    if "dev_tool" not in d:
-        d.setdefault("dev_tool", {})
-        d["dev_tool"].setdefault("module", {})
-        d["dev_tool"]["module"].setdefault("name", "module_name")
-        d["dev_tool"]["module"].setdefault("src_dir", ".")
-        d["dev_tool"].setdefault("submodule_dependencies", {})
-        d["dev_tool"].setdefault("script_src", {})
-        d["dev_tool"]["script_src"].setdefault(
-            "gists", [{"file": "", "gist_id": "", "sha": ""}]
-        )
-        d["dev_tool"]["script_src"].setdefault(
-            "repo_contents",
-            [{"file": "", "owner": "", "repo": "", "path": "", "ref": "", "sha": ""}],
-        )
-        write_toml(PYPROJECT_TOML, d)
 
-class PyBoardActioin(argparse._SubParsersAction):
+    # ask user to configure
+    print("Configure 'pyproject.toml'...\n[dev_tool.*]")
+    module_name = input("- module name (dev_tool) : ")
+    if not module_name:
+        module_name = "dev_tool"
+    src_dir =  input("- source directory (.) : ")
+    if not src_dir:
+        src_dir = "."
+    
+    print("Write 'pyproject.toml'...")
+    # [dev_tool.*]
+    d.setdefault("dev_tool", {})
+    # [dev_tool.module]
+    d["dev_tool"].setdefault("module", {})
+    d["dev_tool"]["module"].setdefault("name", module_name)
+    d["dev_tool"]["module"].setdefault("src_dir", src_dir)
+    d["dev_tool"]["module"].setdefault("micropython-lib", [])
+    # [dev_tool.submodule_dependencies]
+    d["dev_tool"].setdefault("submodule_dependencies", {})
+    # [dev_tool.script_src.*]
+    d["dev_tool"].setdefault("script_src", {})
+    # [[dev_tool.script_src.gists]]
+    d["dev_tool"]["script_src"].setdefault(
+        "gists", [{"file": "", "gist_id": "", "sha": ""}]
+    )
+    # [[dev_tool.script_src.repo_contents]]
+    d["dev_tool"]["script_src"].setdefault(
+        "repo_contents",
+        [{"file": "", "owner": "", "repo": "", "path": "", "ref": "", "sha": ""}],
+    )
+
+    write_toml(PYPROJECT_TOML, d)
+
+class PyBoardActioin(_SubParsersAction):
     """
     Create `PyboardContextbuilder` instance & add into the namespace.
     """
@@ -53,17 +78,19 @@ class PyBoardActioin(argparse._SubParsersAction):
         super().__call__(parser, namespace, values, option_string)
         sub_parser_name = str(getattr(namespace, self.dest))
         if sub_parser_name.startswith(("pyboard_", "pyb_")):
-            setattr(
-                namespace,
-                "_pyb_context_builder_",
-                PyboardContextbuilder(
-                    namespace.port,
-                    namespace.baud,
-                    namespace.user,
-                    namespace.password,
-                    namespace.wait,
-                ),
-            )
+            # Avoid reassigning a new "PyboardContextbuilder" which will cause "PyboardError"
+            if "_pyb_context_builder_" not in namespace:
+                setattr(
+                    namespace,
+                    "_pyb_context_builder_",
+                    PyboardContextbuilder(
+                        namespace.port,
+                        namespace.baud,
+                        namespace.user,
+                        namespace.password,
+                        namespace.wait,
+                    ),
+                )
 
 # #
 MODULE_NAME = None
@@ -82,34 +109,91 @@ parser = CLI(
     ),
 )
 
-# PyBoard arguments
-pyboard_args_g = parser.add_argument_group("PyBoard arguments")
-pyboard_args_g.add_argument(
-    "-p",
-    "--port",
-    default="/dev/ttyACM0",
-    help="the serial device or the IP address of the pyboard",
-)
-pyboard_args_g.add_argument(
-    "-b", "--baud", default=115200, help="the baud rate of the serial device"
-)
-pyboard_args_g.add_argument(
-    "-u", "--user", default="micro", help="the telnet login username"
-)
-pyboard_args_g.add_argument(
-    "-pw", "--password", default="python", help="the telnet login password"
-)
-pyboard_args_g.add_argument(
-    "-w",
-    "--wait",
-    default=0,
-    type=int,
-    help="seconds to wait for USB connected board to become available",
-)
-pyboard_args_g.add_argument(
-    "-dl", "--delay", default=3, type=int, help="seconds to wait before entering raw REPL"
-)
+# PyBoard arguments #
+def mk_pyboard_argument_group(parser_):
+    '''
+    Add argument group about PyBoard to argparse parser.
+    '''
+    pyb_args_g = parser_.add_argument_group("PyBoard arguments")
+    pyb_args_g.add_argument(
+        "-p",
+        "--port",
+        default="/dev/ttyACM0",
+        help="the serial device or the IP address of the pyboard",
+    )
+    pyb_args_g.add_argument(
+        "-b", "--baud", default=115200, help="the baud rate of the serial device"
+    )
+    pyb_args_g.add_argument(
+        "-u", "--user", default="micro", help="the telnet login username"
+    )
+    pyb_args_g.add_argument(
+        "-pw", "--password", default="python", help="the telnet login password"
+    )
+    pyb_args_g.add_argument(
+        "-w",
+        "--wait",
+        default=0,
+        type=int,
+        help="seconds to wait for USB connected board to become available",
+    )
+    pyb_args_g.add_argument(
+        "-dl", "--delay", default=3, type=int, help="seconds to wait before entering raw REPL"
+    )
 
+    return pyb_args_g
+
+pyboard_args_g = mk_pyboard_argument_group(parser)
+
+# Task commands #
+@parser.sub_command(
+    aliases=["init"], help="initialize `dev_tool`"
+)
+def tool_init(args):
+    if path_exists(PYPROJECT_TOML):
+        print("'pyproject.toml' has exist.")
+        return
+    init_dev_tool_toml()
+
+@parser.sub_command(
+    aliases=["dl_ext"], help="download extra libraries to local from `micropython-lib`"
+)
+def download_ext_libs(args):
+
+    def file_filter(file_info):
+        file_name = str(file_info["name"])
+        return (
+            file_name.endswith(".py") 
+            and not file_name.startswith(("test_", "example_"))
+            and file_name not in ["setup.py"]
+        )
+
+    d = read_toml(PYPROJECT_TOML)
+    if "micropython-lib" in  d["dev_tool"]["module"]:
+        ext_lib_list = d["dev_tool"]["module"]["micropython-lib"]
+        ns = Namespace(
+            source='repo_contents',
+            ref='master',
+            parent_dir=EXT_LIB_DIR,
+            file_filter=file_filter
+            )
+        meta = {
+            'owner': 'micropython',
+            'repo': 'micropython-lib',
+            'file': None,
+            'path': None,
+            'sha': None
+        }
+    for lib_name in ext_lib_list:
+        print(lib_name, ":")
+        meta['file'] = lib_name
+        meta['path'] = lib_name
+        update_from_github(ns, meta)
+        # create __init__.py
+        init_py_path =  realpath_join(EXT_LIB_DIR, lib_name, "__init__.py", normcase=False)
+        if not path_exists(init_py_path):
+            with open(init_py_path, 'w', newline=linesep) as f:
+                f.write("")
 
 @parser.sub_command_arg(
     "submodule",
@@ -181,42 +265,25 @@ def make_mpy(args):
     args_list = os_walk_mpy(SRC_DIR, realpath_join(DIST_DIR, "mpy/" + MODULE_NAME))
     mpy_cross_version()
     while args_list:
-        args = args_list.pop()
-        mk_mpy(*args)
+        args_ = args_list.pop()
+        mk_mpy(*args_)
     print("finished.")
 
 
 @parser.sub_command_arg("file", help="script file basename.", type=str)
 @parser.sub_command_arg("source", help="the script source", choices=git_source_choices)
 @parser.sub_command_arg("-r", "--ref", help="The name of the commit/branch/tag", type=str)
-@parser.sub_command_arg("-d", "--dev", help="for dev_tool", action="store_true")
+@parser.sub_command_arg("-d", "--dev", help="for development", action="store_true")
+@parser.sub_command_arg("-t", "--toml", help="specify config toml file (the path base on CWD)", type=str)
 @parser.sub_command(
     aliases=["u_scpt"], help="update the script file by github API (see pyproject.toml)."
 )
 def update_script(args):
-    if args.dev:
-        d = read_toml(PYPROJECT_TOML)
-        meta = None
-        index = -1
-        meta_list = d["dev_tool"]["script_src"][args.source]
-        for meta_ in meta_list:
-            index += 1
-            if meta_.get("file", "") == args.file:
-                meta = meta_
-                break
-        if meta is None:
-            print("%s is not in pyproject.toml" % args.file)
-            return
-
-        success = update_from_github(args, meta)  # update meta reference if success
-        if not success:
-            return
-
-        write_toml(PYPROJECT_TOML, d)
-
+    if args.toml:
+        config_toml = realpath_join(os_cwd(), args.toml)
+        update_script_from_github(args, config_toml)
     else:
-        print("only support `update_script --dev file`")
-
+        update_script_from_github(args)
 
 @parser.sub_command_arg("src", help="the dir path on the board", nargs="?", default="/")
 @parser.sub_command(aliases=["pyb_ls"], help="pyboard: list the dir")
@@ -230,31 +297,41 @@ def pyboard_ls(args):
 )
 def pyboard_install(args):
     with args._pyb_context_builder_(args.delay) as pyb_context:
-
-        def copy_fn(src, dest, isdir):
-            if isdir:
-                pyb_context.mk_dir(dest, verbose=False)
-            else:
-                print("%s >> %s" % (src, dest))
-                pyb_context.pyb.fs_put(src, dest)
-
-        dest_dir = "lib/" + MODULE_NAME
-        pyb_context.mk_dirs(dest_dir)
         src_dir = realpath_join(DIST_DIR, "mpy/" + MODULE_NAME)
-        os_walk_cp(src_dir, dest_dir, copy_fn)
+        dest_dir = "lib/" + MODULE_NAME
+        pyboard_put_files(pyb_context, [(src_dir, dest_dir)])
 
 
 def main():
-    parser.handle_args()
+    ns = parser.parse_args() # for `--help` can pass
+
+    if ns.Task in ["tool_init", "init", "pyboard_ls", "pyb_ls"]:
+        parser.handle_args(namespace=ns)
+        return
+    
+    # Check pyproject.toml & else
+    if not path_exists(PYPROJECT_TOML):
+        print(("'pyproject.toml' is not exist.\n"
+        + "Please use `dev_tool init` command to initialize.")
+        )
+        return
+    
+    pyp_toml = read_toml(PYPROJECT_TOML)
+    if "dev_tool" not in pyp_toml:
+        print(("'dev_tool' property is not exist.\n"
+        + "Please use `dev_tool init` command to initialize.")
+        )
+        return
+
+    MODULE_NAME = pyp_toml["dev_tool"]["module"]["name"]
+    SRC_DIR = realpath_join(HERE, "../", pyp_toml["dev_tool"]["module"]["src_dir"], MODULE_NAME)
+
+    if not path_exists(SRC_DIR):
+        print(('Module source directory does not exist: "%s"') % SRC_DIR)
+        return
+    
+    parser.handle_args(namespace=ns)
 
 
 if __name__ == "__main__":
-    init_dev_tool_toml()
-
-    # get src dir path
-    d = read_toml(PYPROJECT_TOML)
-    MODULE_NAME = d["dev_tool"]["module"]["name"]
-    SRC_DIR = realpath_join(HERE, "../", d["dev_tool"]["module"]["src_dir"], MODULE_NAME)
-    if not path_exists(SRC_DIR):
-        raise OSError(('Module source directory does not exist: "%s"') % SRC_DIR)
     main()

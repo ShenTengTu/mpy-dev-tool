@@ -23,7 +23,6 @@ def download_script(download_url, local_file_path):
 
 path_list = [
     "dev_tool",
-    "pyproject.toml"
 ]
 
 for r_path in path_list:
