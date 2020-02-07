@@ -24,27 +24,43 @@ from .cli import CLI
 
 
 def init_dev_tool_toml():
+    if not path_exists(PYPROJECT_TOML):
+        write_toml(PYPROJECT_TOML, {})
+    
     d = read_toml(PYPROJECT_TOML)
-    if "dev_tool" not in d:
-        d.setdefault("dev_tool", {})
 
-        d["dev_tool"].setdefault("module", {})
-        d["dev_tool"]["module"].setdefault("name", "module_name")
-        d["dev_tool"]["module"].setdefault("src_dir", ".")
-        d["dev_tool"]["module"].setdefault("micropython-lib", [])
+    # ask user to configure
+    print("Configure 'pyproject.toml'...\n[dev_tool.*]")
+    module_name = input("- module name (dev_tool) : ")
+    if not module_name:
+        module_name = "dev_tool"
+    src_dir =  input("- source directory (.) : ")
+    if not src_dir:
+        src_dir = "."
+    
+    print("Write 'pyproject.toml'...")
+    # [dev_tool.*]
+    d.setdefault("dev_tool", {})
+    # [dev_tool.module]
+    d["dev_tool"].setdefault("module", {})
+    d["dev_tool"]["module"].setdefault("name", module_name)
+    d["dev_tool"]["module"].setdefault("src_dir", src_dir)
+    d["dev_tool"]["module"].setdefault("micropython-lib", [])
+    # [dev_tool.submodule_dependencies]
+    d["dev_tool"].setdefault("submodule_dependencies", {})
+    # [dev_tool.script_src.*]
+    d["dev_tool"].setdefault("script_src", {})
+    # [[dev_tool.script_src.gists]]
+    d["dev_tool"]["script_src"].setdefault(
+        "gists", [{"file": "", "gist_id": "", "sha": ""}]
+    )
+    # [[dev_tool.script_src.repo_contents]]
+    d["dev_tool"]["script_src"].setdefault(
+        "repo_contents",
+        [{"file": "", "owner": "", "repo": "", "path": "", "ref": "", "sha": ""}],
+    )
 
-        d["dev_tool"].setdefault("submodule_dependencies", {})
-
-        d["dev_tool"].setdefault("script_src", {})
-        d["dev_tool"]["script_src"].setdefault(
-            "gists", [{"file": "", "gist_id": "", "sha": ""}]
-        )
-        d["dev_tool"]["script_src"].setdefault(
-            "repo_contents",
-            [{"file": "", "owner": "", "repo": "", "path": "", "ref": "", "sha": ""}],
-        )
-
-        write_toml(PYPROJECT_TOML, d)
+    write_toml(PYPROJECT_TOML, d)
 
 class PyBoardActioin(_SubParsersAction):
     """
@@ -62,17 +78,19 @@ class PyBoardActioin(_SubParsersAction):
         super().__call__(parser, namespace, values, option_string)
         sub_parser_name = str(getattr(namespace, self.dest))
         if sub_parser_name.startswith(("pyboard_", "pyb_")):
-            setattr(
-                namespace,
-                "_pyb_context_builder_",
-                PyboardContextbuilder(
-                    namespace.port,
-                    namespace.baud,
-                    namespace.user,
-                    namespace.password,
-                    namespace.wait,
-                ),
-            )
+            # Avoid reassigning a new "PyboardContextbuilder" which will cause "PyboardError"
+            if "_pyb_context_builder_" not in namespace:
+                setattr(
+                    namespace,
+                    "_pyb_context_builder_",
+                    PyboardContextbuilder(
+                        namespace.port,
+                        namespace.baud,
+                        namespace.user,
+                        namespace.password,
+                        namespace.wait,
+                    ),
+                )
 
 # #
 MODULE_NAME = None
@@ -128,6 +146,15 @@ def mk_pyboard_argument_group(parser_):
 pyboard_args_g = mk_pyboard_argument_group(parser)
 
 # Task commands #
+@parser.sub_command(
+    aliases=["init"], help="initialize `dev_tool`"
+)
+def tool_init(args):
+    if path_exists(PYPROJECT_TOML):
+        print("'pyproject.toml' has exist.")
+        return
+    init_dev_tool_toml()
+
 @parser.sub_command(
     aliases=["dl_ext"], help="download extra libraries to local from `micropython-lib`"
 )
@@ -276,16 +303,35 @@ def pyboard_install(args):
 
 
 def main():
-    parser.handle_args()
+    ns = parser.parse_args() # for `--help` can pass
+
+    if ns.Task in ["tool_init", "init", "pyboard_ls", "pyb_ls"]:
+        parser.handle_args(namespace=ns)
+        return
+    
+    # Check pyproject.toml & else
+    if not path_exists(PYPROJECT_TOML):
+        print(("'pyproject.toml' is not exist.\n"
+        + "Please use `dev_tool init` command to initialize.")
+        )
+        return
+    
+    pyp_toml = read_toml(PYPROJECT_TOML)
+    if "dev_tool" not in pyp_toml:
+        print(("'dev_tool' property is not exist.\n"
+        + "Please use `dev_tool init` command to initialize.")
+        )
+        return
+
+    MODULE_NAME = pyp_toml["dev_tool"]["module"]["name"]
+    SRC_DIR = realpath_join(HERE, "../", pyp_toml["dev_tool"]["module"]["src_dir"], MODULE_NAME)
+
+    if not path_exists(SRC_DIR):
+        print(('Module source directory does not exist: "%s"') % SRC_DIR)
+        return
+    
+    parser.handle_args(namespace=ns)
 
 
 if __name__ == "__main__":
-    init_dev_tool_toml()
-
-    # get src dir path
-    d = read_toml(PYPROJECT_TOML)
-    MODULE_NAME = d["dev_tool"]["module"]["name"]
-    SRC_DIR = realpath_join(HERE, "../", d["dev_tool"]["module"]["src_dir"], MODULE_NAME)
-    if not path_exists(SRC_DIR):
-        raise OSError(('Module source directory does not exist: "%s"') % SRC_DIR)
     main()

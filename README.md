@@ -14,10 +14,15 @@ A simple CLI for MicroPython project
 - Interaction with MicroPython boards (base on official `pyboard.py`)
 
 ## Get it
-Just execute `get_dev_tool.py` in your project, it would download `dev_tool` & `pyproject.toml` into the project.
+Just execute `get_dev_tool.py` in your project, it would download `dev_tool` into the project.
 ```
 > python get_dev_tool.py
 ```
+
+Then use the command below to initialize `dev_tool`, it would create a default `pyproject.toml`:
+```
+> python -m dev_tool init
+``` 
 
 ## Directory Structure
 ```
