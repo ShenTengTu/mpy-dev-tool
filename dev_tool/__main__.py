@@ -323,6 +323,7 @@ def main():
         )
         return
 
+    global MODULE_NAME, SRC_DIR
     MODULE_NAME = pyp_toml["dev_tool"]["module"]["name"]
     SRC_DIR = realpath_join(HERE, "../", pyp_toml["dev_tool"]["module"]["src_dir"], MODULE_NAME)
 
