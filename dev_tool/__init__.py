@@ -2,11 +2,12 @@ import os
 import shutil
 import hashlib
 
-__version__ = '0.1.0-beta.1'
+__version__ = "0.1.1-beta"
 
 # path util #
 def os_cwd():
     return os.getcwd()
+
 
 def replace_os_sep(path, new_sep="/"):
     return path.replace(os.sep, new_sep)
@@ -63,8 +64,10 @@ def path_split(path):
 def os_strerror(code):
     return os.strerror(code)
 
+
 def cp_file(src, dst):
     shutil.copyfile(src, dst)
+
 
 def cp_dir(src, dst):
     try:
@@ -72,6 +75,7 @@ def cp_dir(src, dst):
     except FileExistsError:
         shutil.rmtree(dst)
         shutil.copytree(src, dst)
+
 
 def os_walk_cp(src_dir, dest_dir, copy_fn=print):
     """
@@ -81,14 +85,14 @@ def os_walk_cp(src_dir, dest_dir, copy_fn=print):
     tree = os_walk(src_dir)
     for root, _, files in tree:
         root_ = replace_os_sep(root)
-       
+
         # for dir
         rel_root = relpath(root_, start=src_dir)
         if rel_root != ".":
             if path_exists(root_):
                 if callable(copy_fn):
                     copy_fn(root_, dest_dir_ + "/" + rel_root, True)  # src, dest, isdir
-        
+
         # for file
         for f_nanme in files:
             src = realpath_join(root_, f_nanme)
@@ -136,8 +140,8 @@ def os_walk_hash(dir_path):
 # config #
 HERE = dirname(__file__)
 DIST_DIR = realpath_join(HERE, "../dist")
-SUBMODULES_DIR = realpath_join(HERE, "../submodules") # sub modules insides of main module
-EXT_LIB_DIR = realpath_join(HERE, "../ext_lib") # for micropython-lib
-LIB_DIR = realpath_join(HERE, "../lib") # for 3rd party Lib
+SUBMODULES_DIR = realpath_join(HERE, "../submodules")  # sub modules insides of main module
+EXT_LIB_DIR = realpath_join(HERE, "../ext_lib")  # for micropython-lib
+LIB_DIR = realpath_join(HERE, "../lib")  # for 3rd party Lib
 ASSETS_DIR = realpath_join(HERE, "../assets")
 PYPROJECT_TOML = realpath_join(HERE, "../pyproject.toml")
