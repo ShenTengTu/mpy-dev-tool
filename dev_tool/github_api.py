@@ -94,12 +94,12 @@ def _update_from_gist(meta, ref=None):
 
 
 def _update_from_repo_contents(meta, namespace):
-    parent_path = namespace.parent_dir if 'parent_dir' in namespace else HERE
+    parent_path = namespace.parent_dir if "parent_dir" in namespace else HERE
     file_path = realpath_join(parent_path, meta["file"], normcase=False)
     file_exists = path_exists(file_path)
 
     # for repo contents type is "dir"
-    file_filter = namespace.file_filter if 'file_filter' in namespace else lambda x: True
+    file_filter = namespace.file_filter if "file_filter" in namespace else lambda x: True
 
     args = Repo_Contents(*[meta.get(k, None) for k in Repo_Contents._fields])
     url = repo_contents(*args)
@@ -109,8 +109,8 @@ def _update_from_repo_contents(meta, namespace):
         repo_info = api_response(repo_get(args.owner, args.repo))
         meta["ref"] = repo_info["default_branch"]
     else:
-        meta["ref"] = ref # update meta reference
-    
+        meta["ref"] = ref  # update meta reference
+
     params_ = {} if ref is None else {"ref": ref}
     resp_json = api_response(url, params=params_)
     rct = repo_contents_type(resp_json)
@@ -122,9 +122,9 @@ def _update_from_repo_contents(meta, namespace):
         else:
             # download from url
             r = requests.get(download_url, allow_redirects=True)
-            with open(local_file_path, 'w', newline=linesep) as f:
-                    content = r.content.decode(r.encoding)
-                    f.write(content)
+            with open(local_file_path, "w", newline=linesep) as f:
+                content = r.content.decode(r.encoding)
+                f.write(content)
         print("downloaded %s" % download_url)
 
     if not file_exists:
@@ -168,6 +168,7 @@ def update_from_github(namespace, meta):
         return _update_from_repo_contents(meta, namespace)
     else:
         return
+
 
 def update_script_from_github(namespace, config_toml=PYPROJECT_TOML):
     d = read_toml(config_toml)

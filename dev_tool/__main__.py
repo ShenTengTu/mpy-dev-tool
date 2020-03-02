@@ -22,11 +22,10 @@ from .pyb_util import PyboardContextbuilder, pyboard_put_files
 from .cli import CLI
 
 
-
 def init_dev_tool_toml():
     if not path_exists(PYPROJECT_TOML):
         write_toml(PYPROJECT_TOML, {})
-    
+
     d = read_toml(PYPROJECT_TOML)
 
     # ask user to configure
@@ -34,10 +33,10 @@ def init_dev_tool_toml():
     module_name = input("- module name (dev_tool) : ")
     if not module_name:
         module_name = "dev_tool"
-    src_dir =  input("- source directory (.) : ")
+    src_dir = input("- source directory (.) : ")
     if not src_dir:
         src_dir = "."
-    
+
     print("Write 'pyproject.toml'...")
     # [dev_tool.*]
     d.setdefault("dev_tool", {})
@@ -61,6 +60,7 @@ def init_dev_tool_toml():
     )
 
     write_toml(PYPROJECT_TOML, d)
+
 
 class PyBoardActioin(_SubParsersAction):
     """
@@ -92,6 +92,7 @@ class PyBoardActioin(_SubParsersAction):
                     ),
                 )
 
+
 # #
 MODULE_NAME = None
 SRC_DIR = None
@@ -111,9 +112,9 @@ parser = CLI(
 
 # PyBoard arguments #
 def mk_pyboard_argument_group(parser_):
-    '''
+    """
     Add argument group about PyBoard to argparse parser.
-    '''
+    """
     pyb_args_g = parser_.add_argument_group("PyBoard arguments")
     pyb_args_g.add_argument(
         "-p",
@@ -138,71 +139,73 @@ def mk_pyboard_argument_group(parser_):
         help="seconds to wait for USB connected board to become available",
     )
     pyb_args_g.add_argument(
-        "-dl", "--delay", default=3, type=int, help="seconds to wait before entering raw REPL"
+        "-dl",
+        "--delay",
+        default=3,
+        type=int,
+        help="seconds to wait before entering raw REPL",
     )
 
     return pyb_args_g
 
+
 pyboard_args_g = mk_pyboard_argument_group(parser)
 
 # Task commands #
-@parser.sub_command(
-    aliases=["init"], help="initialize `dev_tool`"
-)
+@parser.sub_command(aliases=["init"], help="initialize `dev_tool`")
 def tool_init(args):
     if path_exists(PYPROJECT_TOML):
         print("'pyproject.toml' has exist.")
         return
     init_dev_tool_toml()
 
+
 @parser.sub_command(
     aliases=["dl_ext"], help="download extra libraries to local from `micropython-lib`"
 )
 def download_ext_libs(args):
-
     def file_filter(file_info):
         file_name = str(file_info["name"])
         return (
-            file_name.endswith(".py") 
+            file_name.endswith(".py")
             and not file_name.startswith(("test_", "example_"))
             and file_name not in ["setup.py"]
         )
 
     d = read_toml(PYPROJECT_TOML)
-    if "micropython-lib" in  d["dev_tool"]["module"]:
+    if "micropython-lib" in d["dev_tool"]["module"]:
         ext_lib_list = d["dev_tool"]["module"]["micropython-lib"]
         ns = Namespace(
-            source='repo_contents',
-            ref='master',
+            source="repo_contents",
+            ref="master",
             parent_dir=EXT_LIB_DIR,
-            file_filter=file_filter
-            )
+            file_filter=file_filter,
+        )
         meta = {
-            'owner': 'micropython',
-            'repo': 'micropython-lib',
-            'file': None,
-            'path': None,
-            'sha': None
+            "owner": "micropython",
+            "repo": "micropython-lib",
+            "file": None,
+            "path": None,
+            "sha": None,
         }
     for lib_name in ext_lib_list:
         print(lib_name, ":")
-        meta['file'] = lib_name
-        meta['path'] = lib_name
+        meta["file"] = lib_name
+        meta["path"] = lib_name
         update_from_github(ns, meta)
         # create __init__.py
-        init_py_path =  realpath_join(EXT_LIB_DIR, lib_name, "__init__.py", normcase=False)
+        init_py_path = realpath_join(EXT_LIB_DIR, lib_name, "__init__.py", normcase=False)
         if not path_exists(init_py_path):
-            with open(init_py_path, 'w', newline=linesep) as f:
+            with open(init_py_path, "w", newline=linesep) as f:
                 f.write("")
+
 
 @parser.sub_command_arg(
     "submodule",
     help="relative path of the submodule src directory in `submodules` folder.",
     type=str,
 )
-@parser.sub_command(
-    aliases=["a_sub"], help="add a submodule into main module ."
-)
+@parser.sub_command(aliases=["a_sub"], help="add a submodule into main module .")
 def add_submodule(args):
     submodule = args.submodule
     submodule_dir = realpath_join(SUBMODULES_DIR, submodule)
@@ -226,9 +229,7 @@ def add_submodule(args):
 @parser.sub_command_arg(
     "submodule_name", help="submodule name in main module folder.", type=str
 )
-@parser.sub_command(
-    aliases=["u_sub"], help="update a submodule in main module ."
-)
+@parser.sub_command(aliases=["u_sub"], help="update a submodule in main module .")
 def update_submodule(args):
     # read submodule_dependencies from PYPROJECT_TOML
     submodule_name = args.submodule_name
@@ -274,7 +275,9 @@ def make_mpy(args):
 @parser.sub_command_arg("source", help="the script source", choices=git_source_choices)
 @parser.sub_command_arg("-r", "--ref", help="The name of the commit/branch/tag", type=str)
 @parser.sub_command_arg("-d", "--dev", help="for development", action="store_true")
-@parser.sub_command_arg("-t", "--toml", help="specify config toml file (the path base on CWD)", type=str)
+@parser.sub_command_arg(
+    "-t", "--toml", help="specify config toml file (the path base on CWD)", type=str
+)
 @parser.sub_command(
     aliases=["u_scpt"], help="update the script file by github API (see pyproject.toml)."
 )
@@ -285,11 +288,24 @@ def update_script(args):
     else:
         update_script_from_github(args)
 
+
 @parser.sub_command_arg("src", help="the dir path on the board", nargs="?", default="/")
 @parser.sub_command(aliases=["pyb_ls"], help="pyboard: list the dir")
 def pyboard_ls(args):
     with args._pyb_context_builder_(args.delay) as pyb_context:
         pyb_context.pyb.fs_ls(args.src)
+
+
+@parser.sub_command_arg(
+    "--dest", help="dest dir path (base on pyboard root)", type=str, default="/"
+)
+@parser.sub_command_arg("src", help="src dir path (base on project root)", type=str)
+@parser.sub_command(aliases=["pyb_puts"], help="pyboard: put local files to the board")
+def pyboard_puts(args):
+    src_path = realpath_join(HERE, "../", args.src)
+
+    with args._pyb_context_builder_(args.delay) as pyb_context:
+        pyboard_put_files(pyb_context, [(src_path, args.dest)])
 
 
 @parser.sub_command(
@@ -303,34 +319,42 @@ def pyboard_install(args):
 
 
 def main():
-    ns = parser.parse_args() # for `--help` can pass
+    ns = parser.parse_args()  # for `--help` can pass
 
     if ns.Task in ["tool_init", "init", "pyboard_ls", "pyb_ls"]:
         parser.handle_args(namespace=ns)
         return
-    
+
     # Check pyproject.toml & else
     if not path_exists(PYPROJECT_TOML):
-        print(("'pyproject.toml' is not exist.\n"
-        + "Please use `dev_tool init` command to initialize.")
+        print(
+            (
+                "'pyproject.toml' is not exist.\n"
+                + "Please use `dev_tool init` command to initialize."
+            )
         )
         return
-    
+
     pyp_toml = read_toml(PYPROJECT_TOML)
     if "dev_tool" not in pyp_toml:
-        print(("'dev_tool' property is not exist.\n"
-        + "Please use `dev_tool init` command to initialize.")
+        print(
+            (
+                "'dev_tool' property is not exist.\n"
+                + "Please use `dev_tool init` command to initialize."
+            )
         )
         return
 
     global MODULE_NAME, SRC_DIR
     MODULE_NAME = pyp_toml["dev_tool"]["module"]["name"]
-    SRC_DIR = realpath_join(HERE, "../", pyp_toml["dev_tool"]["module"]["src_dir"], MODULE_NAME)
+    SRC_DIR = realpath_join(
+        HERE, "../", pyp_toml["dev_tool"]["module"]["src_dir"], MODULE_NAME
+    )
 
     if not path_exists(SRC_DIR):
         print(('Module source directory does not exist: "%s"') % SRC_DIR)
         return
-    
+
     parser.handle_args(namespace=ns)
 
 

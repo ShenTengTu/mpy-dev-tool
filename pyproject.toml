@@ -1,3 +1,15 @@
+[tool.black]
+line-length = 92
+target_version = [ "py34",]
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+    | \.vscode
+  )/
+)
+'''
+
 [dev_tool.module]
 name = "dev_tool" # Change to your module name
 src_dir = "." # Where is the parent folder of the module (relative to project root)

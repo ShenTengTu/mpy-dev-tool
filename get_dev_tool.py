@@ -15,15 +15,13 @@ def api_response(url, params=None, **kwargs):
 
 def download_script(download_url, local_file_path):
     r = requests.get(download_url, allow_redirects=True)
-    with open(local_file_path, 'w', newline=os.linesep) as f:
+    with open(local_file_path, "w", newline=os.linesep) as f:
         content = r.content.decode(r.encoding)
         f.write(content)
     print("downloaded %s" % download_url)
 
 
-path_list = [
-    "dev_tool",
-]
+path_list = ["dev_tool"]
 
 for r_path in path_list:
     local_path = os.path.join(here, r_path)
