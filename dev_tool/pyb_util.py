@@ -91,7 +91,7 @@ class PyboardContextbuilder:
         return _PyboardContext(self.__pyb, delay)
 
 
-def pyboard_put_files(pyb_context: _PyboardContext, src_dest_list: list):
+def pyboard_put_files(pyb_context: _PyboardContext, src_dest_list: list, spec=None):
     """
     .. code-block:: python
 
@@ -102,6 +102,14 @@ def pyboard_put_files(pyb_context: _PyboardContext, src_dest_list: list):
     """
 
     def copy_fn(src, dest, isdir):
+        # if specific
+        if type(spec) is list:
+            has_spec = False
+            for p in spec:
+                has_spec = has_spec or str(src).endswith("/" + p)
+            if not has_spec:
+                return
+
         if isdir:
             pyb_context.mk_dir(dest, verbose=False)
         else:

@@ -4,7 +4,6 @@ from os import linesep
 from . import (
     realpath_join,
     os_cwd,
-    os_walk_cp,
     os_walk_hash,
     path_exists,
     path_basename,
@@ -12,7 +11,6 @@ from . import (
     DIST_DIR,
     SUBMODULES_DIR,
     EXT_LIB_DIR,
-    LIB_DIR,
     PYPROJECT_TOML,
 )
 from .toml_op import write_toml, read_toml
@@ -308,6 +306,9 @@ def pyboard_puts(args):
         pyboard_put_files(pyb_context, [(src_path, args.dest)])
 
 
+@parser.sub_command_arg(
+    "-f", "--files", help="specific files to install", nargs="+", type=str
+)
 @parser.sub_command(
     aliases=["pyb_i"], help="pyboard: install mpy distribution to the board"
 )
@@ -315,7 +316,7 @@ def pyboard_install(args):
     with args._pyb_context_builder_(args.delay) as pyb_context:
         src_dir = realpath_join(DIST_DIR, "mpy/" + MODULE_NAME)
         dest_dir = "lib/" + MODULE_NAME
-        pyboard_put_files(pyb_context, [(src_dir, dest_dir)])
+        pyboard_put_files(pyb_context, [(src_dir, dest_dir)], spec=args.files)
 
 
 def main():

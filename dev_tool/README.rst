@@ -26,6 +26,8 @@ Task Commands
     update the script file by github API (see pyproject.toml).
 `pyboard_ls`
     pyboard: list the dir
+`pyboard_puts`
+    pyboard: put local files to the board
 `pyboard_install`
     pyboard: install mpy distribution to the board
 
