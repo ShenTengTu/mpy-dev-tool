@@ -1,0 +1,4 @@
+mpy_cross==1.12
+requests>=2.22.0
+toml>=0.10.0
+pyserial>=3.4
