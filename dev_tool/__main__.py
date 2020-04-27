@@ -301,6 +301,13 @@ def pyboard_rm(args):
         pyb_context.rm(args.src)
 
 
+@parser.sub_command_arg("src", help="the file path on local")
+@parser.sub_command(aliases=["pyb_exec_file"], help="pyboard: execute the local file")
+def pyboard_exec_file(args):
+    with args._pyb_context_builder_(args.delay) as pyb_context:
+        pyb_context.exec_file(args.src)
+
+
 @parser.sub_command_arg(
     "--dest", help="dest dir path (base on pyboard root)", type=str, default="/"
 )

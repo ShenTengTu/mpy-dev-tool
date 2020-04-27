@@ -71,6 +71,15 @@ class _PyboardContext:
         except PyboardError as err:
             return pyb_parse_errno(err)
 
+    def exec_file(self, filename):
+        try:
+            ret = self.pyb.execfile(filename)
+            print(str(ret.decode("utf-8")))
+        except PyboardError as err:
+            _, ret, ret_err = err.args
+            print(str(ret.decode("utf-8")))
+            print(str(ret_err.decode("utf-8")))
+
 
 class PyboardContextbuilder:
     """

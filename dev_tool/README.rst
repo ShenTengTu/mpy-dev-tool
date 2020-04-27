@@ -28,6 +28,8 @@ Task Commands
     pyboard: list the dir
 `pyboard_rm`
     pyboard: remove the file
+`pyboard_exec_file`
+    pyboard: execute the local file
 `pyboard_puts`
     pyboard: put local files to the board
 `pyboard_install`
