@@ -294,6 +294,13 @@ def pyboard_ls(args):
         pyb_context.pyb.fs_ls(args.src)
 
 
+@parser.sub_command_arg("src", help="the file path on the board")
+@parser.sub_command(aliases=["pyb_rm"], help="pyboard: remove the file")
+def pyboard_rm(args):
+    with args._pyb_context_builder_(args.delay) as pyb_context:
+        pyb_context.rm(args.src)
+
+
 @parser.sub_command_arg(
     "--dest", help="dest dir path (base on pyboard root)", type=str, default="/"
 )

@@ -64,6 +64,13 @@ class _PyboardContext:
             if err_no not in (2, 17):  # ENOENT, EEXIST
                 raise PyboardError("[pyboard] %s (%s)" % (err_msg, dir_))
 
+    def rm(self, src):
+        try:
+            self.pyb.fs_rm(src)
+            return (0, None)
+        except PyboardError as err:
+            return pyb_parse_errno(err)
+
 
 class PyboardContextbuilder:
     """
