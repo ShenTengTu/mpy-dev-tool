@@ -1,4 +1,4 @@
-from .pyboard import Pyboard, PyboardError
+from .pyboard import Pyboard, PyboardError, stdout_write_bytes
 import time
 from re import search
 from . import os_strerror, path_split, path_isdir, os_walk_cp
@@ -71,14 +71,15 @@ class _PyboardContext:
         except PyboardError as err:
             return pyb_parse_errno(err)
 
-    def exec_file(self, filename):
+    def exec_file(self, filename, timeout=10):
         try:
-            ret = self.pyb.execfile(filename)
-            print(str(ret.decode("utf-8")))
+            with open(filename, "rb") as f:
+                pyfile = f.read()
+                _, ret_err = self.pyb.exec_raw(pyfile, timeout, stdout_write_bytes)
+                if ret_err:
+                    stdout_write_bytes(ret_err)
         except PyboardError as err:
-            _, ret, ret_err = err.args
-            print(str(ret.decode("utf-8")))
-            print(str(ret_err.decode("utf-8")))
+            print(err)
 
 
 class PyboardContextbuilder:

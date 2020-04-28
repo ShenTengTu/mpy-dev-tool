@@ -301,11 +301,14 @@ def pyboard_rm(args):
         pyb_context.rm(args.src)
 
 
+@parser.sub_command_arg(
+    "--timeout", help="timeout waiting for first EOF reception", type=int, default="10"
+)
 @parser.sub_command_arg("src", help="the file path on local")
 @parser.sub_command(aliases=["pyb_exec_file"], help="pyboard: execute the local file")
 def pyboard_exec_file(args):
     with args._pyb_context_builder_(args.delay) as pyb_context:
-        pyb_context.exec_file(args.src)
+        pyb_context.exec_file(args.src, args.timeout)
 
 
 @parser.sub_command_arg(

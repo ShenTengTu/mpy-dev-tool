@@ -2,7 +2,7 @@ import os
 import shutil
 import hashlib
 
-__version__ = "0.1.3-beta"
+__version__ = "0.1.3-beta.1"
 
 # path util #
 def os_cwd():
