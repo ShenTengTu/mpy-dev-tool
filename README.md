@@ -16,7 +16,7 @@ A simple CLI for MicroPython project
 ## Get it
 Just execute `get_dev_tool.py` in your project, it would download `dev_tool` into the project.
 ```
-> python get_dev_tool.py
+> curl https://raw.githubusercontent.com/ShenTengTu/mpy-dev-tool/master/get_dev_tool.py | sudo python3 -
 ```
 
 Then use the command below to initialize `dev_tool`, it would create a default `pyproject.toml`:
