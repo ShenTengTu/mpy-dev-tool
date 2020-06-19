@@ -10,5 +10,5 @@ owner = "micropython"
 repo = "micropython"
 path = "tools/pyboard.py"
 ref = "master"
-sha = "a0b4ac32005ccbd2fd63b27a15b98b7e2b2074a5"
+sha = "6376b13c7e333cba79e454e4b306867dc40b0317"
 
