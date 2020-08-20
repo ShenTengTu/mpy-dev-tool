@@ -1,0 +1,16 @@
+{
+    "repo_contents": {
+        "https://api.github.com/repos/micropython/micropython/contents/tools/pyboard.py": {
+            "dev_tool/pyboard.py": "https://raw.githubusercontent.com/micropython/micropython/master/tools/pyboard.py",
+            "sha": "6376b13c7e333cba79e454e4b306867dc40b0317"
+        }
+    },
+    "gists": {
+        "https://api.github.com/gists/5e40217db8f7a218b28f365a13a14c00": {
+            "files": {
+                "dev_tool/cli.py": "https://gist.githubusercontent.com/ShenTengTu/5e40217db8f7a218b28f365a13a14c00/raw/4e89c51d715ba472dc1564cce0ea53506ded918f/cli.py"
+            },
+            "revision": "996ff9d9d252b1f5d344114635419044da590e85"
+        }
+    }
+}

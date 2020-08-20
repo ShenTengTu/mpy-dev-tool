@@ -6,6 +6,7 @@ exclude = '''
 (
   /(
     | \.vscode
+    | \bin
   )/
 )
 '''
